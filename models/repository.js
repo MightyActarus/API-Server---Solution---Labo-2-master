@@ -142,6 +142,7 @@ class Repository {
             let filteredAndSortedObjects = [];
             let sortKeys = [];
             let searchKeys = [];
+            let error = [];
             Object.keys(params).forEach(function (paramName) {
                 if (paramName == "sort") {
                     let keyValues = params[paramName];
@@ -159,8 +160,12 @@ class Repository {
                 } else {
                     if (paramName in model)
                         searchKeys.push({key: paramName, value: params[paramName]});
+                    else
+                        error = [{error: paramName + " is not a valid filter"}];
                 }
             });
+            if(error.length > 0)
+                return error;
             this.sortFields = sortKeys;
             //Filter data
             objectsList.map(object =>
