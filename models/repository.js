@@ -7,8 +7,8 @@
 // Lionel-Groulx College
 /////////////////////////////////////////////////////////////////////
 
+const { Console } = require('console');
 const fs = require('fs');
-const utilities = require('../utilities.js');
 
 
 class Repository {
@@ -18,6 +18,8 @@ class Repository {
         this.objectsName = model.getClassName() + 's';
         this.objectsFile = `./data/${this.objectsName}.json`;
         this.bindExtraDataMethod = null;
+        this.sortFields = null;
+        this.ascending = true;
         this.updateResult = {
             ok: 0,
             conflict: 1,
@@ -122,12 +124,62 @@ class Repository {
         return false;
     }
     getAll(params = null) {
+        const valueMatch = (value, searchValue) => {
+            try {
+                return new RegExp('^' + searchValue.toLowerCase().replace(/\*/g, '.*') + '$')
+                .test(value.toString().toLowerCase());
+            } catch (error) {
+                console.log(error);
+                return false;
+            }
+        }
         let objectsList = this.objects();
         if (this.bindExtraDataMethod != null) {
             objectsList = this.bindExtraData(objectsList);
         }
         if (params) {
-            // TODO Laboratoire 2
+            let model = this.model;
+            let filteredAndSortedObjects = [];
+            let sortKeys = [];
+            let searchKeys = [];
+            Object.keys(params).forEach(function (paramName) {
+                if (paramName == "sort") {
+                    let keyValues = params[paramName];
+                    if (Array.isArray(keyValues)) {
+                        for (let key of keyValues) {
+                            let values = key.split(',');
+                            let descendant = (values.length > 1) && (values[1] == "desc");
+                            sortKeys.push({ key: values[0], asc: !descendant });
+                        }
+                    } else {
+                        let value = keyValues.split(',');
+                        let descendant = (value.length > 1) && (value[1] == "desc");
+                        sortKeys.push({ key: value[0], asc: !descendant });
+                    }
+                } else {
+                    // todo add search key
+                    if (paramName in model)
+                        searchKeys.push({key: paramName, value: params[paramName]});
+                }
+            });
+            this.sortFields = sortKeys;
+            //Filter data
+            objectsList.map(object =>
+                {
+                    let valid = true;
+                    searchKeys.forEach(function (key) {
+                            if(!valueMatch(object[key.key], key.value)){
+                                valid = false;
+                            }
+                        });
+                        if(valid){
+                            filteredAndSortedObjects.push(object);
+                        } 
+                });
+            //Sort data
+            if(sortKeys.length > 0)
+            filteredAndSortedObjects = filteredAndSortedObjects.sort(this.compare);
+            return filteredAndSortedObjects;
         }
         return objectsList;
     }
@@ -165,6 +217,32 @@ class Repository {
         }
         return null;
     }
+    compareNum = (x, y) => {
+        if (x === y) return 0;
+        else if (x < y) return -1;
+        return 1;
+    }
+    innerCompare = (x, y) => {
+        if ((typeof x) === 'string')
+            return x.localeCompare(y);
+        else
+            return this.compareNum(x, y);
+    }
+    compare = (itemX, itemY) => {
+        let fieldIndex = 0;
+        let max = this.sortFields.length;
+        do {
+            let result = 0;
+            if (this.sortFields[fieldIndex].asc)
+                result = this.innerCompare(itemX[this.sortFields[fieldIndex].key], itemY[this.sortFields[fieldIndex].key]);
+            else
+                result = this.innerCompare(itemY[this.sortFields[fieldIndex].key], itemX[this.sortFields[fieldIndex].key]);
+            if (result == 0)
+                fieldIndex++;
+            else
+                return result;
+        } while (fieldIndex < max);
+        return 0;
+    }
 }
-
 module.exports = Repository;
