@@ -178,7 +178,7 @@ class Repository {
                 });
             //Sort data
             if(sortKeys.length > 0)
-            filteredAndSortedObjects = filteredAndSortedObjects.sort(this.compare);
+                filteredAndSortedObjects = filteredAndSortedObjects.sort(this.compare);
             return filteredAndSortedObjects;
         }
         return objectsList;
