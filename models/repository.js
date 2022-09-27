@@ -157,7 +157,6 @@ class Repository {
                         sortKeys.push({ key: value[0], asc: !descendant });
                     }
                 } else {
-                    // todo add search key
                     if (paramName in model)
                         searchKeys.push({key: paramName, value: params[paramName]});
                 }
